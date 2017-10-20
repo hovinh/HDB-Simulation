@@ -39,3 +39,6 @@ $$\sum_{j \in M} x_{ij} \leq 1, \forall j$$
 $$x_{ij} \in \{0; 1\}$$
 
 ### Location-based
+
+
+NUMBER OF SAMPLE SMALL AND COUL DNOT SOLVE FASTLY
