@@ -85,35 +85,51 @@ class IntegerProgrammingSolver(Solver):
     
         # Constraints
         # for each agent, there is at most one allocation
-        A = []
-        A_agent = np.zeros([self._numb_agents, self._numb_agents * self._numb_total_flats])
+        #A = []
+        #A_agent = np.zeros([self._numb_agents, self._numb_agents * self._numb_total_flats])
         for agent_index in range(self._numb_agents):
             start_index = agent_index * self._numb_total_flats
             end_index = (agent_index + 1) * self._numb_total_flats
-            A_agent[agent_index][start_index:end_index] = np.ones([1, self._numb_total_flats])
-            A.append(self.convert_A_to_dict(X, A_agent[agent_index]))
+            
+            A_agent = np.zeros(self._numb_agents * self._numb_total_flats)
+            A_agent[start_index:end_index] = np.ones(self._numb_total_flats)
+            A_agent = self.convert_A_to_dict(X, A_agent)
+            prob += lpSum(A_agent[i] * x_vars[i] for i in X) <= 1
+            #A.append(self.convert_A_to_dict(X, A_agent))
+            
+            #A_agent[agent_index][start_index:end_index] = np.ones([1, self._numb_total_flats])
+            #A.append(self.convert_A_to_dict(X, A_agent[agent_index]))
             
         # for each flat, there is at most one allocation
-        A_flat = np.zeros([self._numb_total_flats, self._numb_agents * self._numb_total_flats])
+        #A = []
+        #A_flat = np.zeros([self._numb_total_flats, self._numb_agents * self._numb_total_flats])
         for flat_index in range(self._numb_total_flats):
             flat_positions = [i for i in range(flat_index, self._numb_agents * self._numb_total_flats,
                                                  self._numb_total_flats)]
-            A_flat[flat_index][flat_positions] = np.ones([1, self._numb_agents])  
-            A.append(self.convert_A_to_dict(X, A_flat[flat_index]))
+                                               
+            A_flat = np.zeros(self._numb_agents * self._numb_total_flats)
+            A_flat[flat_positions] = np.ones(self._numb_agents)
+            A_flat = self.convert_A_to_dict(X, A_flat)
+            prob += lpSum(A_flat[i] * x_vars[i] for i in X) <= 1
+            #A.append(self.convert_A_to_dict(X, A_flat))
+            
+            #A_flat[flat_index][flat_positions] = np.ones([1, self._numb_agents])  
+            #A.append(self.convert_A_to_dict(X, A_flat[flat_index]))
                         
-        for i in range(self._numb_agents + self._numb_total_flats):
-            prob += lpSum(A[i][j] * x_vars[j] for j in X) <= 1
+        #for i in range(self._numb_agents + self._numb_total_flats):
+            #prob += lpSum(A[i][j] * x_vars[j] for j in X) <= 1
 
         # for each block, there is a limited capacity for each ethnicity
         if (has_ethnicity == True):
             numb_ethnicities = len(self._ethnicity_list)
-            A_ethnic = np.zeros([self._numb_blocks * numb_ethnicities, self._numb_agents * self._numb_total_flats])
+            #A_ethnic = np.zeros([self._numb_blocks * numb_ethnicities, self._numb_agents * self._numb_total_flats])
             
             for block_index in range(self._numb_blocks):
                 
                 for ethnic_index in range(numb_ethnicities):
                     # determine positions of flats of current block
-                    row_index = block_index * numb_ethnicities + ethnic_index
+                    #row_index = block_index * numb_ethnicities + ethnic_index
+                    A_ethnic = np.zeros(self._numb_agents * self._numb_total_flats)
                     numb_flats_prev_blocks, numb_flats_cur_blocks, numb_flats_next_blocks = 0, 0, 0
                     
                     for i in range(block_index):
@@ -137,9 +153,14 @@ class IntegerProgrammingSolver(Solver):
                     ethnicity_positions = ethnicity_considered == self._ethnic_agents 
                     ethnicity_positions = np.logical_and(ethnicity_positions, block_positions)
 
-                    A_ethnic[row_index] = ethnicity_positions
-                    A.append(self.convert_A_to_dict(X, A_ethnic[row_index]))                    
+                    A_ethnic = ethnicity_positions
+                    ethnic = self._ethnicity_list[ethnic_index]
+                    A_ethnic = self.convert_A_to_dict(X, A_ethnic)
+                    prob += lpSum(A_ethnic[i] * x_vars[i] for i in X) <= self._ethnic_capacity_per_block[block_index][ethnic] 
+                    #A_ethnic[row_index] = ethnicity_positions
+                    #A.append(self.convert_A_to_dict(X, A_ethnic[row_index]))                    
                     
+            '''
             for i in range(self._numb_agents + self._numb_total_flats,
                            self._numb_agents + self._numb_total_flats 
                            + self._numb_blocks * numb_ethnicities):
@@ -147,7 +168,7 @@ class IntegerProgrammingSolver(Solver):
                 ethnic = self._ethnicity_list[ethnic_index]
                 block_index = int((i - (self._numb_agents + self._numb_total_flats)) / numb_ethnicities)
                 prob += lpSum(A[i][j] * x_vars[j] for j in X) <= self._ethnic_capacity_per_block[block_index][ethnic]
-                
+            '''    
         GLPK().solve(prob)
 
         self._prob = prob
@@ -414,12 +435,12 @@ def test8():
     
 if __name__ == '__main__':
     ''' Test suite for IntegerProgrammingSolver '''
-    #print('test1'); test1()
-    #print('test2'); test2()
-    #print('test3'); test3() # costly, check for difference between # agents and # flats
-    #print('test4'); test4()
-    #print('test5'); test5()   
-    #print('test6'); test6()
+    print('test1'); test1()
+    print('test2'); test2()
+    print('test3'); test3() # costly, check for difference between # agents and # flats
+    print('test4'); test4()
+    print('test5'); test5()   
+    print('test6'); test6()
     ''' Test suite for LotterySolver '''
-    #print('test7'); test7()
-    #print('test8'); test8()
+    print('test7'); test7()
+    print('test8'); test8()

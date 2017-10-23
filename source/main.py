@@ -2,7 +2,6 @@ import numpy as np
 import random 
 import matplotlib.pyplot as plt
 
-from scipy.optimize import linprog
 from numpy.linalg import solve
 from pulp import * 
 from utility import *
@@ -10,20 +9,36 @@ from solver import *
 
 '''GLOBAL PARAMETER'''
 
-def set_global_parameter():
-    global NUMB_AGENTS, NUMB_BLOCKS, NUMB_FLATS_PER_BLOCK, NUMB_TOTAL_FLATS, NUMB_ETHNICS, ACTUAL_RATIO, MAX_ITERATIONS
-    NUMB_AGENTS = 2965
-    NUMB_BLOCKS = 21
-    NUMB_FLATS_PER_BLOCK = read_NUMB_FLATS_PER_BLOCK()
+def set_global_parameter_test():
+    global NUMB_AGENTS, NUMB_BLOCKS, NUMB_FLATS_PER_BLOCK, NUMB_TOTAL_FLATS, NUMB_ETHNICS, ACTUAL_RATIO, MAX_ITERATIONS, ETHNIC_FILE, BLOCK_LOCATION_FILE
+    NUMB_AGENTS = 50
+    NUMB_BLOCKS = 5
+    NUMB_FLATS_PER_BLOCK = read_NUMB_FLATS_PER_BLOCK('test_flats_per_block.txt')
     NUMB_TOTAL_FLATS = np.sum(NUMB_FLATS_PER_BLOCK)
     
+    BLOCK_LOCATION_FILE = 'test_location.txt'
+    ETHNIC_FILE = 'test_ethnic.txt'
     NUMB_ETHNICS = 3
     ACTUAL_RATIO = {'CHINESE': .77, 'MALAYS': .14, 'INDIANS': .08}
     MAX_ITERATIONS = 600 # iterations of SIMPLEX ALGORITHM: 600 secs = 10 mins
 
-def read_NUMB_FLATS_PER_BLOCK():
+def set_global_parameter_actual():
+    global NUMB_AGENTS, NUMB_BLOCKS, NUMB_FLATS_PER_BLOCK, NUMB_TOTAL_FLATS, NUMB_ETHNICS, ACTUAL_RATIO, MAX_ITERATIONS, ETHNIC_FILE, BLOCK_LOCATION_FILE
+    NUMB_AGENTS = 2965
+    NUMB_BLOCKS = 21
+    NUMB_FLATS_PER_BLOCK = read_NUMB_FLATS_PER_BLOCK('actual_flats_per_block.txt')
+    NUMB_TOTAL_FLATS = np.sum(NUMB_FLATS_PER_BLOCK)
+    
+    BLOCK_LOCATION_FILE = 'actual_location.txt'
+    ETHNIC_FILE = 'actual_ethnic.txt'
+    NUMB_ETHNICS = 3
+    ACTUAL_RATIO = {'CHINESE': .77, 'MALAYS': .14, 'INDIANS': .08}
+    MAX_ITERATIONS = 600 # iterations of SIMPLEX ALGORITHM: 600 secs = 10 mins
+
+    
+def read_NUMB_FLATS_PER_BLOCK(file_name = 'test_flats_per_block.txt'):
     numb_flats_per_block = []
-    with open('actual_flats_per_block.txt', 'r') as file:
+    with open(file_name, 'r') as file:
         for line in file:
             line = line.strip()
             numb_flats_per_block.append(int(line))
@@ -59,7 +74,7 @@ def constrained_ip_random(should_plot = False):
 
     solver = IntegerProgrammingSolver(NUMB_AGENTS, NUMB_BLOCKS,
                                              NUMB_FLATS_PER_BLOCK, random_utility)
-    solver.add_ethnicity(random_utility, read_from_file=True, file_name='actual_ethnic.txt')
+    solver.add_ethnicity(random_utility, read_from_file=True, file_name=ETHNIC_FILE)
     solver.calculate(has_ethnicity = True)
   
     print ('Status:', LpStatus[solver._prob.status])    
@@ -80,7 +95,7 @@ def compare_model_ip_random(numb_iterations = 10):
         solver.calculate(has_ethnicity=False)
         unconstrained_results.append(value(solver._prob.objective))
         
-        solver.add_ethnicity(random_utility, read_from_file=True, file_name='test_ethnic.txt')
+        solver.add_ethnicity(random_utility, read_from_file=True, file_name=ETHNIC_FILE)
         solver.calculate(has_ethnicity=True)
         constrained_results.append(value(solver._prob.objective))
 
@@ -95,7 +110,7 @@ def unconstrained_ip_location(should_plot = False):
     location_utility = LocationUtility(NUMB_AGENTS, NUMB_BLOCKS, NUMB_FLATS_PER_BLOCK)
     area = [103.675326, 103.913309, 1.302669, 1.424858] # actual limitation of Singapore
     points_of_interest = location_utility.generate_points_of_interest(area)
-    block_locations = location_utility.read_block_locations()
+    block_locations = location_utility.read_block_locations(BLOCK_LOCATION_FILE)
     location_utility.generate(points_of_interest, block_locations)
     
     if (should_plot == True):
@@ -115,7 +130,7 @@ def constrained_ip_location(should_plot = False):
     location_utility = LocationUtility(NUMB_AGENTS, NUMB_BLOCKS, NUMB_FLATS_PER_BLOCK)
     area = [103.675326, 103.913309, 1.302669, 1.424858] # actual limitation of Singapore
     points_of_interest = location_utility.generate_points_of_interest(area)
-    block_locations = location_utility.read_block_locations()
+    block_locations = location_utility.read_block_locations(BLOCK_LOCATION_FILE)
     location_utility.add_ethnicity()
     location_utility.generate(points_of_interest, block_locations)
     
@@ -125,7 +140,7 @@ def constrained_ip_location(should_plot = False):
     
     solver = IntegerProgrammingSolver(NUMB_AGENTS, NUMB_BLOCKS,
                                              NUMB_FLATS_PER_BLOCK, location_utility)
-    solver.add_ethnicity(location_utility, read_from_file=True, file_name='test_ethnic.txt')
+    solver.add_ethnicity(location_utility, read_from_file=True, file_name=ETHNIC_FILE)
 
     solver.calculate(has_ethnicity = True)
   
@@ -142,7 +157,7 @@ def compare_model_ip_location(numb_iterations = 10):
         location_utility = LocationUtility(NUMB_AGENTS, NUMB_BLOCKS, NUMB_FLATS_PER_BLOCK)
         area = [103.675326, 103.913309, 1.302669, 1.424858] # actual limitation of Singapore
         points_of_interest = location_utility.generate_points_of_interest(area)
-        block_locations = location_utility.read_block_locations()
+        block_locations = location_utility.read_block_locations(BLOCK_LOCATION_FILE)
         location_utility.add_ethnicity()
         location_utility.generate(points_of_interest, block_locations)
         
@@ -152,7 +167,7 @@ def compare_model_ip_location(numb_iterations = 10):
         solver.calculate(has_ethnicity=False)
         unconstrained_results.append(value(solver._prob.objective))
         
-        solver.add_ethnicity(location_utility, read_from_file=True, file_name='test_ethnic.txt')
+        solver.add_ethnicity(location_utility, read_from_file=True, file_name=ETHNIC_FILE)
         solver.calculate(has_ethnicity=True)
         constrained_results.append(value(solver._prob.objective))
 
@@ -192,7 +207,7 @@ def constrained_lottery_random(should_plot = False):
 
     solver = LotterySolver(NUMB_AGENTS, NUMB_BLOCKS,
                                              NUMB_FLATS_PER_BLOCK, random_utility)
-    solver.add_ethnicity(random_utility, read_from_file=True, file_name='test_ethnic.txt')
+    solver.add_ethnicity(random_utility, read_from_file=True, file_name=ETHNIC_FILE)
     x_vars, optimal_value = solver.calculate(has_ethnicity=True)
 
     print ('Optimal value:', optimal_value)
@@ -214,7 +229,7 @@ def compare_model_lottery_random(numb_iterations = 10):
         x_vars, optimal_value = solver.calculate(has_ethnicity=False)
         unconstrained_results.append(optimal_value)
         
-        solver.add_ethnicity(random_utility, read_from_file=True, file_name='test_ethnic.txt')
+        solver.add_ethnicity(random_utility, read_from_file=True, file_name=ETHNIC_FILE)
         x_vars, optimal_value = solver.calculate(has_ethnicity=True)
         constrained_results.append(optimal_value)
 
@@ -229,7 +244,7 @@ def unconstrained_lottery_location(should_plot = False):
     location_utility = LocationUtility(NUMB_AGENTS, NUMB_BLOCKS, NUMB_FLATS_PER_BLOCK)
     area = [103.675326, 103.913309, 1.302669, 1.424858] # actual limitation of Singapore
     points_of_interest = location_utility.generate_points_of_interest(area)
-    block_locations = location_utility.read_block_locations()
+    block_locations = location_utility.read_block_locations(BLOCK_LOCATION_FILE)
     location_utility.generate(points_of_interest, block_locations)
     
     if (should_plot == True):
@@ -249,7 +264,7 @@ def constrained_lottery_location(should_plot = False):
     location_utility = LocationUtility(NUMB_AGENTS, NUMB_BLOCKS, NUMB_FLATS_PER_BLOCK)
     area = [103.675326, 103.913309, 1.302669, 1.424858] # actual limitation of Singapore
     points_of_interest = location_utility.generate_points_of_interest(area)
-    block_locations = location_utility.read_block_locations()
+    block_locations = location_utility.read_block_locations(BLOCK_LOCATION_FILE)
     location_utility.add_ethnicity()
     location_utility.generate(points_of_interest, block_locations)
     
@@ -259,7 +274,7 @@ def constrained_lottery_location(should_plot = False):
 
     solver = LotterySolver(NUMB_AGENTS, NUMB_BLOCKS,
                                              NUMB_FLATS_PER_BLOCK, location_utility)
-    solver.add_ethnicity(location_utility, read_from_file=True, file_name='test_ethnic.txt')
+    solver.add_ethnicity(location_utility, read_from_file=True, file_name=ETHNIC_FILE)
     x_vars, optimal_value = solver.calculate(has_ethnicity=True)
 
     print ('Optimal value:', optimal_value)
@@ -274,7 +289,7 @@ def compare_model_lottery_location(numb_iterations = 10):
         location_utility = LocationUtility(NUMB_AGENTS, NUMB_BLOCKS, NUMB_FLATS_PER_BLOCK)
         area = [103.675326, 103.913309, 1.302669, 1.424858] # actual limitation of Singapore
         points_of_interest = location_utility.generate_points_of_interest(area)
-        block_locations = location_utility.read_block_locations()
+        block_locations = location_utility.read_block_locations(BLOCK_LOCATION_FILE)
         location_utility.add_ethnicity()
         location_utility.generate(points_of_interest, block_locations)
         
@@ -283,7 +298,7 @@ def compare_model_lottery_location(numb_iterations = 10):
         x_vars, optimal_value = solver.calculate(has_ethnicity=False)
         unconstrained_results.append(optimal_value)
         
-        solver.add_ethnicity(location_utility, read_from_file=True, file_name='test_ethnic.txt')
+        solver.add_ethnicity(location_utility, read_from_file=True, file_name=ETHNIC_FILE)
         x_vars, optimal_value = solver.calculate(has_ethnicity=True)
         constrained_results.append(optimal_value)
 
@@ -300,8 +315,9 @@ if __name__ == '__main__':
     random.seed(0)
 
     # set global parameter
-    set_global_parameter()
-
+    #set_global_parameter_test()
+    set_global_parameter_actual()
+    
     # list of simulation models    
     model_list = {'unconstrained_ipsolver_random': unconstrained_ip_random,
                   'constrained_ipsolver_random': constrained_ip_random,
@@ -314,17 +330,25 @@ if __name__ == '__main__':
     
     # execute the model
     optimal_value = model_list['unconstrained_ipsolver_random']()
-    optimal_value = model_list['constrained_ipsolver_random']()
+    #optimal_value = model_list['constrained_ipsolver_random']()
+    #optimal_value = model_list['unconstrained_ipsolver_random'](True)
+    #optimal_value = model_list['constrained_ipsolver_random'](True)
     #compare_model_ip_random(2)
 
     #optimal_value = model_list['unconstrained_ipsolver_location']()
     #optimal_value = model_list['constrained_ipsolver_location']()
+    #optimal_value = model_list['unconstrained_ipsolver_location'](True)
+    #optimal_value = model_list['constrained_ipsolver_location'](True)
     #compare_model_ip_location(2)
     
     #optimal_value = model_list['unconstrained_lotterysolver_random']()
     #optimal_value = model_list['constrained_lotterysolver_random']()
+    #optimal_value = model_list['unconstrained_lotterysolver_random'](True)
+    #optimal_value = model_list['constrained_lotterysolver_random'](True)
     #compare_model_lottery_random()
     
     #optimal_value = model_list['unconstrained_lotterysolver_location']()
     #optimal_value = model_list['constrained_lotterysolver_location']()
+    #optimal_value = model_list['unconstrained_lotterysolver_location'](True)
+    #optimal_value = model_list['constrained_lotterysolver_location'](True)
     #compare_model_lottery_location()
