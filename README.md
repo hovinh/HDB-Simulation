@@ -6,7 +6,7 @@ This project aims to simulate the Housing Development Board's allocations of Sin
 
 # Content
 
-For a detailed report, and best visualization of mathematical formula, have a look at [experiment.html](document/experiment.html).
+For a detailed report, and best visualization of mathematical formula, have a look at [experiment.html](document/experiment.pdf).
 
 # Acknowledgement
 
