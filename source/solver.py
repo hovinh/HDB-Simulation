@@ -70,16 +70,19 @@ class IntegerProgrammingSolver(Solver):
         prob = LpProblem('IntegerProgramming', LpMaximize)
         
         # Variables
+        print ('Create variables')
         X = [str(i)+'_'+str(j) for i in range(self._numb_agents) for j in range(self._numb_total_flats)]
         x_vars = LpVariable.dicts('x_vars', X, 0, 1, cat = 'Integer')
               
         # Objectives
         # coefficients of objective function
+        print ('Write objective function')
         utilities = np.ndarray.flatten(self._utility)
-        c = {}
-        for i in range(self._numb_agents * self._numb_total_flats):
-            x_i = X[i]; utility = utilities[i]
-            c[x_i] = utility
+        c = self.convert_A_to_dict(X, utilities)
+        #c = {}
+        #for i in range(self._numb_agents * self._numb_total_flats):
+            #x_i = X[i]; utility = utilities[i]
+            #c[x_i] = utility
     
         prob += lpSum([c[i] * x_vars[i] for i in X])
     
@@ -87,6 +90,7 @@ class IntegerProgrammingSolver(Solver):
         # for each agent, there is at most one allocation
         #A = []
         #A_agent = np.zeros([self._numb_agents, self._numb_agents * self._numb_total_flats])
+        print ('Write agent constraints')
         for agent_index in range(self._numb_agents):
             start_index = agent_index * self._numb_total_flats
             end_index = (agent_index + 1) * self._numb_total_flats
@@ -103,6 +107,7 @@ class IntegerProgrammingSolver(Solver):
         # for each flat, there is at most one allocation
         #A = []
         #A_flat = np.zeros([self._numb_total_flats, self._numb_agents * self._numb_total_flats])
+        print ('Write flat constraints')
         for flat_index in range(self._numb_total_flats):
             flat_positions = [i for i in range(flat_index, self._numb_agents * self._numb_total_flats,
                                                  self._numb_total_flats)]
@@ -120,6 +125,7 @@ class IntegerProgrammingSolver(Solver):
             #prob += lpSum(A[i][j] * x_vars[j] for j in X) <= 1
 
         # for each block, there is a limited capacity for each ethnicity
+        print ('Write ethnicity constraints')
         if (has_ethnicity == True):
             numb_ethnicities = len(self._ethnicity_list)
             #A_ethnic = np.zeros([self._numb_blocks * numb_ethnicities, self._numb_agents * self._numb_total_flats])
@@ -168,7 +174,8 @@ class IntegerProgrammingSolver(Solver):
                 ethnic = self._ethnicity_list[ethnic_index]
                 block_index = int((i - (self._numb_agents + self._numb_total_flats)) / numb_ethnicities)
                 prob += lpSum(A[i][j] * x_vars[j] for j in X) <= self._ethnic_capacity_per_block[block_index][ethnic]
-            '''    
+            '''   
+        print ('Start solving')
         GLPK().solve(prob)
 
         self._prob = prob
@@ -177,11 +184,12 @@ class IntegerProgrammingSolver(Solver):
         return prob
     
     def convert_A_to_dict(self, X, A_sub):
-        A_temp = {}
-        for i in range(self._numb_agents * self._numb_total_flats):
-            x_i = X[i]; indicator = A_sub[i]
-            A_temp[x_i] = indicator
-        return A_temp
+        return dict(zip(X, A_sub))
+        #A_temp = {}
+        #for i in range(self._numb_agents * self._numb_total_flats):
+            #x_i = X[i]; indicator = A_sub[i]
+            #A_temp[x_i] = indicator
+        #return A_temp
             
 def test1():
     np.random.seed(0)
