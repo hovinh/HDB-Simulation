@@ -1,5 +1,6 @@
 '''This is classes for Linear Programming Solver'''
 import numpy as np
+import random
 import abc
 from pulp import *
 from utility import *
@@ -71,7 +72,9 @@ class IntegerProgrammingSolver(Solver):
         
         # Variables
         print ('Create variables')
-        X = [str(i)+'_'+str(j) for i in range(self._numb_agents) for j in range(self._numb_total_flats)]
+        #X = [str(i)+'_'+str(j) for i in range(self._numb_agents) for j in range(self._numb_total_flats)]
+        #X = [i for i in range(self._numb_agents * self._numb_total_flats)]
+        X = np.arange(self._numb_agents * self._numb_total_flats)
         x_vars = LpVariable.dicts('x_vars', X, 0, 1, cat = 'Integer')
               
         # Objectives
@@ -334,14 +337,14 @@ class LotterySolver(Solver):
         '''
         Algorithm:
             When there is available flat
-                Pick randomly a unallocated agent
+                Pick randomly an unallocated agent
                 Let him pick the most prefered flat in his opinion, among available flats
         '''
         
         marked_flats_list = np.zeros(self._numb_total_flats)
         marked_agents_list = np.zeros(self._numb_agents)
         
-        ethnic_list = None; assigned_flats_per_block = None 
+        ethnic_list = None; assigned_flats_per_block = None
         if (has_ethnicity == True):
             ethnic_list = [self._ethnic_agents[i * self._numb_total_flats] for i in range(self._numb_agents)]
             assigned_flats_per_block = [{'C':0, 'M': 0, 'I': 0} for i in range(self._numb_blocks)]
@@ -353,12 +356,12 @@ class LotterySolver(Solver):
         while (numb_assigned_flats < min(self._numb_total_flats, self._numb_agents) and
                np.sum(marked_agents_list) < self._numb_agents):
             # choose unallocated agent randomly
-            unmarked_agent_positions = marked_agents_list == 0
+            unmarked_agent_positions = (marked_agents_list == 0)
             unmarked_agent_positions_index = np.where(unmarked_agent_positions)[0]
             agent_index = np.random.choice(unmarked_agent_positions_index)
             
             # choose unallocated flat that maximize agent's utility
-            unmarked_flat_positions = marked_flats_list == 0
+            unmarked_flat_positions = (marked_flats_list == 0)
             agent_utilities = np.full(self._numb_total_flats, -1.) # in case generated utility is zero
             
             # number of flats is more limited due to ethnicity constraint
@@ -368,7 +371,7 @@ class LotterySolver(Solver):
                     ethnic_agent = ethnic_list[agent_index]
                     cur_numb_ethnic = assigned_flats_per_block[block_index][ethnic_agent]
                     quota_ethnic = self._ethnic_capacity_per_block[block_index][ethnic_agent]
-                    if (cur_numb_ethnic > quota_ethnic):
+                    if (cur_numb_ethnic >= quota_ethnic):
                         unmarked_flat_positions[flat_index] = False
                 
                 # if there is no flats left for her, skip this agent
@@ -378,7 +381,6 @@ class LotterySolver(Solver):
 
             agent_utilities[unmarked_flat_positions] = self._utility[agent_index][unmarked_flat_positions]
             flat_index = np.argmax(agent_utilities)
-            
             # mark pair agent-flat was assigned
             marked_agents_list[agent_index] = 1
             marked_flats_list[flat_index] = 1
@@ -392,6 +394,7 @@ class LotterySolver(Solver):
             optimal_value += agent_utilities[flat_index]
             numb_assigned_flats += 1
         
+        x_vars = x_vars.flatten()
         return x_vars, optimal_value
     
     def get_block_from_flat_index(self, flat_index):
@@ -409,26 +412,49 @@ class LotterySolver(Solver):
 
 def test7():
     np.random.seed(0)
+    random.seed(0)
     numb_agents = 50
     numb_blocks = 5
     numb_flats_per_block = [10, 10, 10, 10, 10]
     
     utility = RandomUtility(numb_agents, numb_blocks, numb_flats_per_block)
+    utility.add_ethnicity()
     utility.generate()
 
     solver = LotterySolver(numb_agents, numb_blocks, numb_flats_per_block,
                                  utility)
+    ethnic_capacity_per_block = [{'C':8, 'M':2, 'I':2} for i in range(numb_blocks)]
+        
+    solver.add_ethnicity(utility, False, ethnicity_list=['C', 'M', 'I'], ethnic_capacity_per_block=ethnic_capacity_per_block)
     x_vars, optimal_value = solver.calculate()
 
     print ('Optimal value:', optimal_value)
     print ('Number of assigned agents', np.sum(x_vars))
 
 def test8():
-    np.random.seed(0)
+    np.random.seed(seed=0)
+    random.seed(0)
     numb_agents = 50
     numb_blocks = 5
     numb_flats_per_block = [10, 10, 10, 10, 10]
     
+    utility = RandomUtility(numb_agents, numb_blocks, numb_flats_per_block)
+    utility.add_ethnicity()
+    utility.generate()
+
+    solver = LotterySolver(numb_agents, numb_blocks, numb_flats_per_block,
+                                 utility)
+    x_vars, optimal_value = solver.calculate(has_ethnicity=False)
+
+    print ('Optimal value:', optimal_value)
+    print ('Number of assigned agents', np.sum(x_vars))
+
+    np.random.seed(seed=0)
+    random.seed(0)    
+    numb_agents = 50
+    numb_blocks = 5
+    numb_flats_per_block = [10, 10, 10, 10, 10]
+
     utility = RandomUtility(numb_agents, numb_blocks, numb_flats_per_block)
     utility.add_ethnicity()
     utility.generate()
@@ -441,14 +467,190 @@ def test8():
     print ('Optimal value:', optimal_value)
     print ('Number of assigned agents', np.sum(x_vars))
     
+def test9():
+    np.random.seed(seed=0)
+    random.seed(0)
+    numb_agents = 50
+    numb_blocks = 5
+    numb_flats_per_block = [10, 10, 10, 10, 10]
+    utility = LocationUtility(numb_agents, numb_blocks, numb_flats_per_block)
+    area = [103.675326, 103.913309, 1.302669, 1.424858] # actual limitation of Singapore
+    points_of_interest = utility.generate_points_of_interest(area)
+    block_locations = [(103.8, 1.31), (103.9, 1.31), (103.7, 1.35),
+                       (103.85, 1.4), (103.9, 1.37)]
+    utility.add_ethnicity()
+    utility.generate(points_of_interest, block_locations)
+
+    solver = IntegerProgrammingSolver(numb_agents, numb_blocks, numb_flats_per_block,
+                                 utility)
+    solver.calculate()    
+    print ('Status:', LpStatus[solver._prob.status])    
+    print ('Optimal value:', value(solver._prob.objective))
+    
+    np.random.seed(seed=0)
+    random.seed(0)
+    numb_agents = 50
+    numb_blocks = 5
+    numb_flats_per_block = [10, 10, 10, 10, 10]
+    utility = LocationUtility(numb_agents, numb_blocks, numb_flats_per_block)
+    area = [103.675326, 103.913309, 1.302669, 1.424858] # actual limitation of Singapore
+    points_of_interest = utility.generate_points_of_interest(area)
+    block_locations = [(103.8, 1.31), (103.9, 1.31), (103.7, 1.35),
+                       (103.85, 1.4), (103.9, 1.37)]
+    utility.add_ethnicity()
+    utility.generate(points_of_interest, block_locations)
+
+    solver = IntegerProgrammingSolver(numb_agents, numb_blocks, numb_flats_per_block,
+                                 utility)
+    ethnic_capacity_per_block = [{'C':8, 'M':2, 'I':2} for i in range(numb_blocks)]
+        
+    solver.add_ethnicity(utility, False, ethnicity_list=['C', 'M', 'I'], ethnic_capacity_per_block=ethnic_capacity_per_block)
+    
+    solver.calculate(has_ethnicity = True)
+    print ('Status:', LpStatus[solver._prob.status])    
+    print ('Optimal value:', value(solver._prob.objective))
+
+    
+def test10():
+    np.random.seed(seed=0)
+    random.seed(0)
+    numb_agents = 50
+    numb_blocks = 5
+    numb_flats_per_block = [10, 10, 10, 10, 10]
+    
+    utility = LocationUtility(numb_agents, numb_blocks, numb_flats_per_block)
+    area = [103.675326, 103.913309, 1.302669, 1.424858] # actual limitation of Singapore
+    points_of_interest = utility.generate_points_of_interest(area)
+    block_locations = utility.read_block_locations()
+    utility.add_ethnicity()
+    utility.generate(points_of_interest, block_locations)
+
+    solver = LotterySolver(numb_agents, numb_blocks, numb_flats_per_block,
+                                 utility)
+    x_vars, optimal_value = solver.calculate(has_ethnicity=False)
+
+    print ('Optimal value:', optimal_value)
+    print ('Number of assigned agents', np.sum(x_vars))
+
+    np.random.seed(seed=0)
+    random.seed(0)    
+    numb_agents = 50
+    numb_blocks = 5
+    numb_flats_per_block = [10, 10, 10, 10, 10]
+
+    utility = LocationUtility(numb_agents, numb_blocks, numb_flats_per_block)
+    area = [103.675326, 103.913309, 1.302669, 1.424858] # actual limitation of Singapore
+    points_of_interest = utility.generate_points_of_interest(area)
+    block_locations = utility.read_block_locations()
+    utility.add_ethnicity()
+    utility.generate(points_of_interest, block_locations)
+
+    solver = LotterySolver(numb_agents, numb_blocks, numb_flats_per_block,
+                                 utility)
+    solver.add_ethnicity(utility, True)
+    x_vars, optimal_value = solver.calculate(has_ethnicity=True)
+
+    print ('Optimal value:', optimal_value)
+    print ('Number of assigned agents', np.sum(x_vars))
+        
+def test11():
+    np.random.seed(0) 
+    random.seed(0)
+    numb_agents = 50
+    numb_blocks = 5
+    numb_flats_per_block = [10, 10, 10, 10, 10]
+    utility = EthnicalLocationUtility(numb_agents, numb_blocks, numb_flats_per_block)
+    
+    area = [103.675326, 103.913309, 1.302669, 1.424858] # actual limitation of Singapore
+    points_of_interest = utility.generate_ethnical_points_of_interest(area)
+    block_locations = utility.read_block_locations()
+    utility.add_ethnicity()
+    utility.generate(points_of_interest, block_locations, set_variance=False)
+    
+    solver = LotterySolver(numb_agents, numb_blocks, numb_flats_per_block,
+                                 utility)
+    x_vars, optimal_value = solver.calculate(has_ethnicity=False)
+
+    print ('Optimal value:', optimal_value)
+    print ('Number of assigned agents', np.sum(x_vars))
+
+    np.random.seed(0) 
+    random.seed(0)
+    numb_agents = 50
+    numb_blocks = 5
+    numb_flats_per_block = [10, 10, 10, 10, 10]
+    utility = EthnicalLocationUtility(numb_agents, numb_blocks, numb_flats_per_block)
+    
+    area = [103.675326, 103.913309, 1.302669, 1.424858] # actual limitation of Singapore
+    points_of_interest = utility.generate_ethnical_points_of_interest(area)
+    block_locations = utility.read_block_locations()
+    utility.add_ethnicity()
+    utility.generate(points_of_interest, block_locations, set_variance=False)
+
+    solver = LotterySolver(numb_agents, numb_blocks, numb_flats_per_block,
+                                 utility)
+    solver.add_ethnicity(utility, True)
+    x_vars, optimal_value = solver.calculate(has_ethnicity=True)
+
+    print ('Optimal value:', optimal_value)
+    print ('Number of assigned agents', np.sum(x_vars))
+
+def test12():
+    np.random.seed(0) 
+    random.seed(0)
+    numb_agents = 50
+    numb_blocks = 5
+    numb_flats_per_block = [10, 10, 10, 10, 10]
+    utility = EthnicalLocationUtility(numb_agents, numb_blocks, numb_flats_per_block)
+    
+    area = [103.675326, 103.913309, 1.302669, 1.424858] # actual limitation of Singapore
+    points_of_interest = utility.generate_ethnical_points_of_interest(area)
+    block_locations = utility.read_block_locations()
+    utility.add_ethnicity()
+    utility.generate(points_of_interest, block_locations, set_variance=False)
+    
+    solver = IntegerProgrammingSolver(numb_agents, numb_blocks, numb_flats_per_block,
+                                 utility)
+    solver.calculate()    
+    print ('Status:', LpStatus[solver._prob.status])    
+    print ('Optimal value:', value(solver._prob.objective))
+
+
+    np.random.seed(0) 
+    random.seed(0)
+    numb_agents = 50
+    numb_blocks = 5
+    numb_flats_per_block = [10, 10, 10, 10, 10]
+    utility = EthnicalLocationUtility(numb_agents, numb_blocks, numb_flats_per_block)
+    
+    area = [103.675326, 103.913309, 1.302669, 1.424858] # actual limitation of Singapore
+    points_of_interest = utility.generate_ethnical_points_of_interest(area)
+    block_locations = utility.read_block_locations()
+    utility.add_ethnicity()
+    utility.generate(points_of_interest, block_locations, set_variance=False)
+
+    solver = IntegerProgrammingSolver(numb_agents, numb_blocks, numb_flats_per_block,
+                                 utility)
+    ethnic_capacity_per_block = [{'C':8, 'M':2, 'I':2} for i in range(numb_blocks)]
+        
+    solver.add_ethnicity(utility, False, ethnicity_list=['C', 'M', 'I'], ethnic_capacity_per_block=ethnic_capacity_per_block)
+    
+    solver.calculate(has_ethnicity = True)
+    print ('Status:', LpStatus[solver._prob.status])    
+    print ('Optimal value:', value(solver._prob.objective))
+    
 if __name__ == '__main__':
     ''' Test suite for IntegerProgrammingSolver '''
-    print('test1'); test1()
-    print('test2'); test2()
-    print('test3'); test3() # costly, check for difference between # agents and # flats
-    print('test4'); test4()
-    print('test5'); test5()   
-    print('test6'); test6()
+    #print('test1'); test1()
+    #print('test2'); test2()
+    #print('test3'); test3() # costly, check for difference between # agents and # flats
+    #print('test4'); test4()
+    #print('test5'); test5()   
+    #print('test6'); test6()
     ''' Test suite for LotterySolver '''
     print('test7'); test7()
-    print('test8'); test8()
+    #print('test8'); test8()
+    #print('test9'); test9()
+    #print('test10'); test10()
+    #print('test11'); test11()
+    #print('test12'); test12()
