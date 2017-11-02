@@ -61,6 +61,24 @@ A more realistic model is location-based, whereas each people have one personal 
        Normalize utility such that they are non-negative and sum is equal to 1
 ~~~
 
+We do not stop it there! By mixing the location with ethnicity factor, an additional twist is added to reflect the fact that people in a same community tend to gather in one focus point.
+
+~~~
+1. Indicate the coordinate(longitude and latitude) of each block.
+2. Generate 1 point of interest for each ethnicity uniformly in designated area.
+3. For each agent_i:
+       Calculate the distance to each blocks from its ethnicity's point
+       The mean is 1 over the distance (inversly proportional)
+       Determine the variance with a small fixed value or according to mean.
+       Draw one sample from the newly formed BETA DISTRIBUTION
+       Normalize utility such that they are non-negative and sum is equal to 1
+~~~
+
+Note that we need to normalize the mean in such a way that satisfied following constraints:
+
+$$0 < \mu_{Beta} < 1$$
+
+$$0 < \sigma^2_{Beta} < \mu_{Beta}*(1-\mu_{Beta})$$
 ## Solver model
 
 With respect to obtained utility, we use 2 proposed solver to calculate optimal solution, within and without ethnicity constraint. 
@@ -100,6 +118,7 @@ $$x_{ij} \in \{0; 1\}$$
 4.     Mark the agent (no matter she is allocated or not) and block.
 ~~~
 
+
 ## Environment
 
 * Programming Language: ``Python 3``
@@ -115,3 +134,7 @@ $$x_{ij} \in \{0; 1\}$$
 ## Result
 
 Update later.
+- [ ] For approximately 3000 agents and 1500 flats, it took more than 12 hours to finish up the writing input, and I think this is the current bottleneck in the implementation, or API of PuLP, to be precise.
+- [ ] Current implementation is for pair-wise, try to compare 4 settings at the same time, within 1 utility model.
+- [ ] Change variance smaller corresponding to mean of beta distribution. Instead divide $\sigma^2 = \frac{\mu * (1-\mu)}{2}$ with a factor 2, try 10. 
+- [ ] To scale up to actual data, my approach is normalize actual dataset into 10 units for each block or project. 
