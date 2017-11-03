@@ -133,8 +133,58 @@ $$x_{ij} \in \{0; 1\}$$
 
 ## Result
 
-Update later.
+### Utility model
+
+Following utilities is generated with setting of 4 blocks, each has 10 flats.
+
+#### Random Utility generated from Beta Distribution
+
+![utility_random_all](../image/histo_random_uti_all.png) 
+
+![utility_random_block_01](../image/histo_random_uti_blk01.png) ![utility_random_block_02](../image/histo_random_uti_blk02.png)
+
+![utility_random_block_03](../image/histo_random_uti_blk03.png) ![utility_random_block_04](../image/histo_random_uti_blk04.png)
+
+#### Location Utility generated with ethnicity factor
+
+We exclude the first model of location utility, though user can re-generate it with [utility.py](../source/utility.py)
+
+Note that we set $\sigma^2 = \frac{\mu*(1-\mu)}{2}$. 
+
+![utility_location_all](../image/histo_location_uti_all.png) 
+
+![utility_location_block_01](../image/histo_location_uti_blk01.png) ![utility_location_block_02](../image/histo_location_uti_blk02.png)
+
+![utility_location_block_03](../image/histo_location_uti_blk03.png) ![utility_location_block_04](../image/histo_location_uti_blk04.png)
+
+### Comparison
+
+As our expectation, the integer programming is optimal value, and hence always having higher than other methods within and without ethnicity constraints. However, a large scale model is required to make a final conclusion, otherwise everything is meaningless. Unfortunately, I haven't figured it out yet how to solve the bottleneck in PuLP API to solve it faster (it took more than 12 hours to merely writing the constraints and objective functions).
+
+Following set of experiments is conducted in this sequences of steps:
+
+1) Run simulation 10 times with different seed of pseudo random generator
+2) Generate utility with corresponding model
+3) Calculate the optimal value for each solver
+4) Obtain the average optimal value
+
+Note that I have just run with 123 agents and 123 flats, which is not a significant number in whichever the sense is. Further investigation need to be conducted.
+
+#### Comparison in Random Utility model
+
+||Unconstrained|Constrained|
+|-|:-:|-:|
+|Integer Programming Solver|2.05016579304|2.05012335992|
+|Lottery Solver|1.97745122474|1.97600739867|
+
+#### Comparison in Location Utility model
+
+||Unconstrained|Constrained|
+|-|:-:|-:|
+|Integer Programming Solver|2.41652445441|2.41652415773|
+|Lottery Solver|2.26725429046|2.26592062167|
+
+## Calling for assistance
 - [ ] For approximately 3000 agents and 1500 flats, it took more than 12 hours to finish up the writing input, and I think this is the current bottleneck in the implementation, or API of PuLP, to be precise.
-- [ ] Current implementation is for pair-wise, try to compare 4 settings at the same time, within 1 utility model.
 - [ ] Change variance smaller corresponding to mean of beta distribution. Instead divide $\sigma^2 = \frac{\mu * (1-\mu)}{2}$ with a factor 2, try 10. 
 - [ ] To scale up to actual data, my approach is normalize actual dataset into 10 units for each block or project. 
