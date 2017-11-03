@@ -129,9 +129,9 @@ class RandomUtility(Utility):
 def test1(should_plot = False):
     np.random.seed(0) 
     random.seed(0)
-    numb_agents = 50
-    numb_blocks = 5
-    numb_flats_per_block = [10, 10, 10, 10, 10]
+    numb_agents = 40
+    numb_blocks = 4
+    numb_flats_per_block = [10, 10, 10, 10]
     utility = RandomUtility(numb_agents, numb_blocks, numb_flats_per_block)
     utility.generate()
     
@@ -448,9 +448,9 @@ class EthnicalLocationUtility(Utility):
 def test7(should_plot = False):
     np.random.seed(0) 
     random.seed(0)
-    numb_agents = 50
-    numb_blocks = 5
-    numb_flats_per_block = [10, 10, 10, 10, 10]
+    numb_agents = 40
+    numb_blocks = 4
+    numb_flats_per_block = [10, 10, 10, 10]
     utility = EthnicalLocationUtility(numb_agents, numb_blocks, numb_flats_per_block)
     
     area = [103.675326, 103.913309, 1.302669, 1.424858] # actual limitation of Singapore
@@ -465,11 +465,11 @@ def test7(should_plot = False):
         
 if __name__ == '__main__':
     ''' Test suite for RandomUtility '''
-    test1(False)
-    test1_1(False)
-    test2(False)
-    test3(False)
-    test4(False)
+    test1(True) # RANDOM UTILITY
+    #test1_1(False)
+    #test2(False)
+    #test3(False)
+    #test4(False)
     #test1(True)
     #test1_1(True)
     #test2(True)
@@ -478,10 +478,10 @@ if __name__ == '__main__':
     
     
     ''' Test suite for LocationUtility '''
-    test5(False)
-    test6(False)
-    test7(False)
+    #test5(False) # LOCATION UTILITY 1
+    #test6(False)
+    #test7(False)
     #test5(True)
     #test6(True)
-    #test7(True)
+    test7(True) # LOCATION UTILITY 2
     

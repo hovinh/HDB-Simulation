@@ -648,6 +648,210 @@ def compare_model_constrained_location(numb_iterations=10):
     print (lottery_results)
     print (lottery_expected)
 
+def compare_random_utility(numb_iterations = 10):
+    integer_unconstrained_results = []
+    integer_unconstrained_expected = []
+    integer_constrained_results = []
+    integer_constrained_expected = []
+    lottery_unconstrained_results = []
+    lottery_unconstrained_expected = []
+    lottery_constrained_results = []
+    lottery_constrained_expected = []
+    
+    for iteration in range(numb_iterations):
+        print ('Iteration:', iteration + 1)
+        # Integer unconstrained
+        np.random.seed(iteration)
+        random.seed(iteration)
+        random_utility = RandomUtility(NUMB_AGENTS, NUMB_BLOCKS, NUMB_FLATS_PER_BLOCK)
+        random_utility.add_ethnicity()
+        random_utility.generate()
+        
+        solver = IntegerProgrammingSolver(NUMB_AGENTS, NUMB_BLOCKS,
+                                                 NUMB_FLATS_PER_BLOCK, random_utility)
+        solver.calculate(has_ethnicity=False)
+        integer_unconstrained_results.append(value(solver._prob.objective))
+        x_vars = [v.varValue for v in solver._prob.variables()]
+        integer_unconstrained_expected.append(calculate_expected_utility_wrt_ethnic(x_vars, random_utility._ethnic_agents,
+                                                                      random_utility._utility))
+          
+        # Integer constrained
+        np.random.seed(iteration)
+        random.seed(iteration)
+        random_utility = RandomUtility(NUMB_AGENTS, NUMB_BLOCKS, NUMB_FLATS_PER_BLOCK)
+        random_utility.add_ethnicity()
+        random_utility.generate()
+        solver = IntegerProgrammingSolver(NUMB_AGENTS, NUMB_BLOCKS,
+                                                 NUMB_FLATS_PER_BLOCK, random_utility)
+        solver.add_ethnicity(random_utility, read_from_file=True, file_name=ETHNIC_FILE)
+        solver.calculate(has_ethnicity=True)
+        integer_constrained_results.append(value(solver._prob.objective))
+        x_vars = [v.varValue for v in solver._prob.variables()]
+        integer_constrained_expected.append(calculate_expected_utility_wrt_ethnic(x_vars, random_utility._ethnic_agents,
+                                                                      random_utility._utility))
+          
+        # Lottery unconstrained
+        np.random.seed(iteration)
+        random.seed(iteration)
+        random_utility = RandomUtility(NUMB_AGENTS, NUMB_BLOCKS, NUMB_FLATS_PER_BLOCK)
+        random_utility.add_ethnicity()
+        random_utility.generate()
+        solver = LotterySolver(NUMB_AGENTS, NUMB_BLOCKS,
+                                                 NUMB_FLATS_PER_BLOCK, random_utility)
+        x_vars, optimal_value = solver.calculate(has_ethnicity=False)
+        lottery_unconstrained_results.append(optimal_value)
+        lottery_unconstrained_expected.append(calculate_expected_utility_wrt_ethnic(x_vars, random_utility._ethnic_agents,
+                                                                      random_utility._utility))
+        
+        # Lottery constrained
+        np.random.seed(iteration)
+        random.seed(iteration)
+        random_utility = RandomUtility(NUMB_AGENTS, NUMB_BLOCKS, NUMB_FLATS_PER_BLOCK)
+        random_utility.add_ethnicity()
+        random_utility.generate()
+        solver = LotterySolver(NUMB_AGENTS, NUMB_BLOCKS,
+                                                 NUMB_FLATS_PER_BLOCK, random_utility)
+        solver.add_ethnicity(random_utility, read_from_file=True, file_name=ETHNIC_FILE)
+        x_vars, optimal_value = solver.calculate(has_ethnicity=True)
+        lottery_constrained_results.append(optimal_value)
+        lottery_constrained_expected.append(calculate_expected_utility_wrt_ethnic(x_vars, random_utility._ethnic_agents,
+                                                                      random_utility._utility))
+        
+    average_integer_unconstrained_result = np.sum(integer_unconstrained_results) / numb_iterations
+    average_integer_constrained_result = np.sum(integer_constrained_results) / numb_iterations
+    average_lottery_unconstrained_result = np.sum(lottery_unconstrained_results) / numb_iterations
+    average_lottery_constrained_result = np.sum(lottery_constrained_results) / numb_iterations
+        
+    print ('Integer model')
+    print ('Unconstrained')
+    print ('Average optimal: ', average_integer_unconstrained_result)
+    print (integer_unconstrained_results)
+    print (integer_unconstrained_expected)
+    print ('Constrained')
+    print ('Average optimal: ', average_integer_constrained_result)
+    print (integer_constrained_results)
+    print (integer_constrained_expected)
+    
+    print ('Lottery model')
+    print ('Unconstrained')
+    print ('Average optimal: ', average_lottery_unconstrained_result)
+    print (lottery_unconstrained_results)
+    print (lottery_unconstrained_expected)
+    print ('Constrained')
+    print ('Average optimal: ', average_lottery_constrained_result)
+    print (lottery_constrained_results)
+    print (lottery_constrained_expected)
+    
+
+def compare_location_utility(numb_iterations = 10):
+    integer_unconstrained_results = []
+    integer_unconstrained_expected = []
+    integer_constrained_results = []
+    integer_constrained_expected = []
+    lottery_unconstrained_results = []
+    lottery_unconstrained_expected = []
+    lottery_constrained_results = []
+    lottery_constrained_expected = []
+
+    for iteration in range(numb_iterations):
+        print ('Iteration:', iteration + 1)
+        # Integer unconstrained
+        np.random.seed(iteration)
+        random.seed(iteration)
+        location_utility = EthnicalLocationUtility(NUMB_AGENTS, NUMB_BLOCKS, NUMB_FLATS_PER_BLOCK)
+        area = [103.675326, 103.913309, 1.302669, 1.424858] # actual limitation of Singapore
+        points_of_interest = location_utility.generate_ethnical_points_of_interest(area)
+        block_locations = location_utility.read_block_locations(BLOCK_LOCATION_FILE)
+        location_utility.add_ethnicity()
+        location_utility.generate(points_of_interest, block_locations, set_variance=False)
+        
+        solver = IntegerProgrammingSolver(NUMB_AGENTS, NUMB_BLOCKS,
+                                                 NUMB_FLATS_PER_BLOCK, location_utility)
+        solver.calculate(has_ethnicity=False)
+        integer_unconstrained_results.append(value(solver._prob.objective))
+        x_vars = [v.varValue for v in solver._prob.variables()]
+        integer_unconstrained_expected.append(calculate_expected_utility_wrt_ethnic(x_vars, location_utility._ethnic_agents,
+                                                                      location_utility._utility))
+  
+        # Integer constrained
+        np.random.seed(iteration)
+        random.seed(iteration)
+        location_utility = EthnicalLocationUtility(NUMB_AGENTS, NUMB_BLOCKS, NUMB_FLATS_PER_BLOCK)
+        area = [103.675326, 103.913309, 1.302669, 1.424858] # actual limitation of Singapore
+        points_of_interest = location_utility.generate_ethnical_points_of_interest(area)
+        block_locations = location_utility.read_block_locations(BLOCK_LOCATION_FILE)
+        location_utility.add_ethnicity()
+        location_utility.generate(points_of_interest, block_locations, set_variance=False)
+        
+        solver = IntegerProgrammingSolver(NUMB_AGENTS, NUMB_BLOCKS,
+                                                 NUMB_FLATS_PER_BLOCK, location_utility)
+        solver.add_ethnicity(location_utility, read_from_file=True, file_name=ETHNIC_FILE)
+        solver.calculate(has_ethnicity=True)
+        integer_constrained_results.append(value(solver._prob.objective))
+        x_vars = [v.varValue for v in solver._prob.variables()]
+        integer_constrained_expected.append(calculate_expected_utility_wrt_ethnic(x_vars, location_utility._ethnic_agents,
+                                                                      location_utility._utility))
+        # Lottery unconstrained
+        np.random.seed(iteration)
+        random.seed(iteration)
+        location_utility = EthnicalLocationUtility(NUMB_AGENTS, NUMB_BLOCKS, NUMB_FLATS_PER_BLOCK)
+        area = [103.675326, 103.913309, 1.302669, 1.424858] # actual limitation of Singapore
+        points_of_interest = location_utility.generate_ethnical_points_of_interest(area)
+        block_locations = location_utility.read_block_locations(BLOCK_LOCATION_FILE)
+        location_utility.add_ethnicity()
+        location_utility.generate(points_of_interest, block_locations, set_variance=False)
+        
+        solver = LotterySolver(NUMB_AGENTS, NUMB_BLOCKS,
+                                                 NUMB_FLATS_PER_BLOCK, location_utility)
+        x_vars, optimal_value = solver.calculate(has_ethnicity=False)
+        lottery_unconstrained_results.append(optimal_value)
+        lottery_unconstrained_expected.append(calculate_expected_utility_wrt_ethnic(x_vars, location_utility._ethnic_agents,
+                                                                      location_utility._utility))
+     
+        # Lottery constrained
+        np.random.seed(iteration)
+        random.seed(iteration)
+        location_utility = EthnicalLocationUtility(NUMB_AGENTS, NUMB_BLOCKS, NUMB_FLATS_PER_BLOCK)
+        area = [103.675326, 103.913309, 1.302669, 1.424858] # actual limitation of Singapore
+        points_of_interest = location_utility.generate_ethnical_points_of_interest(area)
+        block_locations = location_utility.read_block_locations(BLOCK_LOCATION_FILE)
+        location_utility.add_ethnicity()
+        location_utility.generate(points_of_interest, block_locations, set_variance=False)
+        
+        solver = LotterySolver(NUMB_AGENTS, NUMB_BLOCKS,
+                                                 NUMB_FLATS_PER_BLOCK, location_utility)
+        solver.add_ethnicity(location_utility, read_from_file=True, file_name=ETHNIC_FILE)
+        x_vars, optimal_value = solver.calculate(has_ethnicity=True)
+        lottery_constrained_results.append(optimal_value)
+        lottery_constrained_expected.append(calculate_expected_utility_wrt_ethnic(x_vars, location_utility._ethnic_agents,
+                                                                      location_utility._utility))
+ 
+    average_integer_unconstrained_result = np.sum(integer_unconstrained_results) / numb_iterations
+    average_integer_constrained_result = np.sum(integer_constrained_results) / numb_iterations
+    average_lottery_unconstrained_result = np.sum(lottery_unconstrained_results) / numb_iterations
+    average_lottery_constrained_result = np.sum(lottery_constrained_results) / numb_iterations
+        
+    print ('Integer model')
+    print ('Unconstrained')
+    print ('Average optimal: ', average_integer_unconstrained_result)
+    print (integer_unconstrained_results)
+    print (integer_unconstrained_expected)
+    print ('Constrained')
+    print ('Average optimal: ', average_integer_constrained_result)
+    print (integer_constrained_results)
+    print (integer_constrained_expected)
+    
+    print ('Lottery model')
+    print ('Unconstrained')
+    print ('Average optimal: ', average_lottery_unconstrained_result)
+    print (lottery_unconstrained_results)
+    print (lottery_unconstrained_expected)
+    print ('Constrained')
+    print ('Average optimal: ', average_lottery_constrained_result)
+    print (lottery_constrained_results)
+    print (lottery_constrained_expected)
+
+        
 if __name__ == '__main__':
     # turn stochastic process into deterministic, but turn off when experimenting
     np.random.seed(0) 
@@ -696,4 +900,7 @@ if __name__ == '__main__':
     #compare_model_constrained_random(10)
     #compare_model_unconstrained_location(10)
     #compare_model_constrained_location(10)
+    
+    #compare_random_utility(10)
+    compare_location_utility(10)
     print("--- %s seconds ---" % (time.time() - start_time))
